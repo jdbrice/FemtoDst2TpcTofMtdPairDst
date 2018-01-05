@@ -4,3 +4,4 @@ modules/PairDstFormat/DictionaryFemtoPair.cpp
 *.o
 *.app
 *.lis
+.sconsign.dblite
