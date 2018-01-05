@@ -16,7 +16,7 @@
 #include "FemtoDstFormat/TClonesArrayReader.h"
 #include "FemtoDstFormat/FemtoEvent.h"
 
-#include "Filters/MuonMLPFilter.h"
+#include "Filters/MuonMVAFilter.h"
 
 #include "PairDstFormat/FemtoPair.h"
 
@@ -43,10 +43,17 @@ protected:
 	TClonesArrayReader<FemtoTrack> _ftr;
 	TClonesArrayReader<FemtoMtdPidTraits> _fmtdr;
 
-	MuonMLPFilter _mlp;
+	vector <MuonMVAFilter> mlps;
+	vector <MuonMVAFilter> bdts;
+	HistoBins bins_pt_mva;
+
+
 	TTree * _pairDst = nullptr;
 	BranchWriter<FemtoPair> _fpw;
 	FemtoPair _pair; 
+
+	int cenBinMin; //inclusive
+	int cenBinMax; //inclusive
 
 public:
 
@@ -61,12 +68,33 @@ public:
 		this->_ftr.setup( this->chain, "Tracks" );
 		this->_fmtdr.setup( this->chain, "MtdPidTraits" );
 
-		_mlp.load( config, nodePath + ".MuonMLPFilter" );
+		// _mlp.load( config, nodePath + ".MuonMLPFilter" );
+
+		bins_pt_mva.load( config, nodePath + ".MuonMVAFilter.ptBins" );
+		string mlp_template_str = config.getString( nodePath + ".MuonMVAFilter.WeightsMLP" );
+		string bdt_template_str = config.getString( nodePath + ".MuonMVAFilter.WeightsBDT" );
+
+		/* LOAD THE MLPs */
+		// use this first one to setup the sinlgeton reader and load the variables
+		MuonMVAFilter m_setup;
+		m_setup.loadVars( config, nodePath + ".MuonMVAFilter" );
+
+		for ( size_t i = 0; i < bins_pt_mva.nBins(); i++ ){
+			MuonMVAFilter m;
+			TString wf = TString::Format( mlp_template_str.c_str(), i );
+			TString n = TString::Format( "mlp_%zu", i );
+			m.load( string( wf ), string( n ) );
+			LOG_F( INFO, "Loading %s from %s", n.Data(), wf.Data() );
+			mlps.push_back( m );
+		}
 
 		book->cd();
 
 		this->_pairDst = new TTree( "PairDst", "" );
 		this->_fpw.createBranch( this->_pairDst, "Pairs" );
+
+		cenBinMin = config.getInt( nodePath + ".CenBin:min", -1 );
+		cenBinMax = config.getInt( nodePath + ".CenBin:max", -1 );
 
 	}
 protected:
@@ -77,6 +105,7 @@ protected:
 
 		this->_pair.reset();
 		this->_pair.mVertexZ              = event->mPrimaryVertex_mX3;
+		this->_pair.mDeltaVertexZ         = event->mPrimaryVertex_mX3 - event->mWeight;
 		this->_pair.mGRefMult             = event->mGRefMult;
 
 		this->_pair.d1_mDeltaY            = p1._mtdPid->mDeltaY;
@@ -146,7 +175,16 @@ protected:
 	virtual void analyzeEvent(){
 		FemtoEvent * event = this->_fer.get();
 
-		
+
+		if ( cenBinMin >= 0 && cenBinMax >= 0 ){
+			if ( event->mBin16 < cenBinMin )
+				return;
+			if ( event->mBin16 > cenBinMax )
+				return;
+		}
+
+		// if ( fabs(event->mPrimaryVertex_mX3 - event->mWeight) < 200 )
+		// 	return;
 
 		size_t nTracks = this->_ftr.N();
 		
@@ -158,10 +196,17 @@ protected:
 			if ( nullptr == p1._mtdPid  ) continue;
 			if ( p1._track->mPt < 0.01 ) continue;
 
-			p1._pid = this->_mlp.evaluate( p1 );
+			int ipt1 = bins_pt_mva.findBin( p1._track->mPt );
+			if ( ipt1 < 0 ){
+				p1._pid = -999;
+				LOG_F( WARNING, "ipt1 = %d, pt = %f", ipt1, p1._track->mPt );
+			} else {
+				MuonMVAFilter::fillVars( p1 );
+				p1._pid = mlps[ipt1].evaluate( p1 );
+			}
 
 
-			for ( size_t j = 0; j < nTracks; j++ ){
+			for ( size_t j = i; j < nTracks; j++ ){
 				if ( i == j ) continue;
 
 				FemtoTrackProxy p2;
@@ -171,9 +216,27 @@ protected:
 				if ( nullptr == p2._mtdPid  ) continue;
 				if ( p2._track->mPt < 0.01 ) continue;
 
-				p2._pid = this->_mlp.evaluate( p2 );
+				int ipt2 = bins_pt_mva.findBin( p2._track->mPt );
+				if ( ipt2 < 0 ){
+					p2._pid = -999;
+					LOG_F( WARNING, "ipt2 = %d, pt = %f", ipt2, p2._track->mPt );
+				} else {
+					MuonMVAFilter::fillVars( p2 );
+					p2._pid = mlps[ipt2].evaluate( p2 );
+				}
+					
 
-				addPair( event, p1, p2 );
+
+				// if it is unlike sign pair, make d1 pos and d2 neg
+				if ( 0 == p1._track->charge() + p2._track->charge() ){
+					if ( p1._track->charge() > 0 )
+						addPair( event, p1, p2 );
+					else 
+						addPair( event, p2, p1 );
+				} else {
+					addPair( event, p1, p2 );
+				}
+				
 			} // loop track j
 		}// loop track i
 	}

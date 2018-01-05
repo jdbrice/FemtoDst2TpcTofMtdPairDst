@@ -1,0 +1,6 @@
+*.root
+G__auto12038LinkDef.h
+modules/PairDstFormat/DictionaryFemtoPair.cpp
+*.o
+*.app
+*.lis

@@ -6,15 +6,24 @@
 	<PairDstMaker>
 		<EventLoop progress="true" />
 		<input>
-			<dst treeName="FemtoDst" url="./list.lis"  maxFiles="-1" />
+			<dst treeName="FemtoDst" url="./list.lis"  splitBy="13" />
 		</input>
 
 		<output>
-			<TFile url="pair_dst{mod}.root" />
+			<TFile url="pair_dst{mod}_{jobIndex}.root" />
 		</output>
 
 		<MuonMLPFilter min="-1" max="1.0">
 			<weights>config/TMVAClassification_MLP_all.weights.xml</weights>
 		</MuonMLPFilter>
+
+
+		<MuonMVAFilter>
+			<ptBins> 0.80, 1.50, 2.00, 2.50, 3.00, 3.50, 4.00, 4.50, 5.00, 7.50, 10.00, 100.00 </ptBins>
+			<vars>qdY, dZ, nSigmaPi, dca, Cell, Module, BL, charge, dTof</vars>
+			<WeightsMLP>/home/jdb12/work/dimuonAna/TrainMVA/bin/weights/TMVAClassification_MLP_Np10Np12_wopt_%d.weights.xml</WeightsMLP>
+			<WeightsBDT>/home/jdb12/work/dimuonAna/TrainMVA/bin/weights/TMVAClassification_BDT_Np10Np12_wopt_%d.weights.xml</WeightsBDT>
+		</MuonMVAFilter>
+
 	</PairDstMaker>
 </config>

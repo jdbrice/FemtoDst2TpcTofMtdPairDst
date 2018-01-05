@@ -14,6 +14,7 @@ public:
 
 	void reset(){
 		mVertexZ              = -999;
+		mDeltaVertexZ         = -999;
 		mGRefMult             = 0;
 		mChargeSum            = -3;
 		mPt                   = 0.0;
@@ -60,6 +61,7 @@ public:
 	}
 	void copy( FemtoPair * that ){
 		this->mVertexZ              = that->mVertexZ;
+		this->mDeltaVertexZ         = that->mDeltaVertexZ;
 		this->mGRefMult             = that->mGRefMult;
 		this->mChargeSum            = that->mChargeSum;
 		this->mPt                   = that->mPt;
@@ -106,7 +108,8 @@ public:
 	}
 
 	// Event
-	Float_t 	mVertexZ;					// Event VertexZ
+	Float_t 	mVertexZ;				// Event VertexZ
+	Float_t 	mDeltaVertexZ;			// delta vz
 	UShort_t 	mGRefMult;				// global RefMult
 	
 
@@ -162,7 +165,7 @@ public:
 	Float_t 	d2_mDCA;
 	Float_t 	d2_mPid;
 
-	ClassDef( FemtoPair, 1 )
+	ClassDef( FemtoPair, 2 )
 };
 
 
