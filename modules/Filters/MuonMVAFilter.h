@@ -88,6 +88,9 @@ public:
 
 		MVA_dY *= MVA_Charge;
 
+		if ( MVA_Pt > 15.0 )
+			MVA_Pt = 15;
+
 		// LOG_F(INFO, "MVA_dY=%f", MVA_dY);
 		// LOG_F(INFO, "MVA_dZ=%f", MVA_dZ);
 		// LOG_F(INFO, "MVA_dTof=%f", MVA_dTof);

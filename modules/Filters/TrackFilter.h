@@ -46,7 +46,7 @@ public:
 
 		if ( range.count( "pT" ) && !range[ "pT" ].inInclusiveRange( _proxy._track->mPt ) )
 			return false;
-		if ( range.count( "p" ) && !range[ "p" ].inInclusiveRange( _proxy._track->mPt * cosh(_proxy._track->mEta) ) )
+		if ( range.count( "p" ) && !range[ "p" ].inInclusiveRange( _proxy._track->mPt * cosh( _proxy._track->mEta ) ) )
 			return false;
 		if ( range.count( "eta" ) && !range[ "eta" ].inInclusiveRange( _proxy._track->mEta ) )
 			return false;
@@ -59,9 +59,8 @@ public:
 		if ( range.count( "nSigmaPion" ) && !range["nSigmaPion"].inInclusiveRange( _proxy._track->nSigmaPion() ) )
 			return false;
 
-		if ( range.count( "dca" ) && !range["dca"].inInclusiveRange( _proxy._track->gDCA() ) )
+		if ( nullptr != _proxy._helix && range.count( "dca" ) && !range["dca"].inInclusiveRange( _proxy._helix->mDCA ) )
 			return false;
-
 
 
 		return true;
